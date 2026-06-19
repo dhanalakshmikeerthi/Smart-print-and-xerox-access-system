@@ -1,49 +1,54 @@
 const dotenv = require("dotenv");
-dotenv.config();
 
+dotenv.config();
 const express = require("express");
+
 const cors = require("cors");
+
 const mongoose = require("mongoose");
-const path = require("path");
 
 const app = express();
 
-/* =========================
-   MIDDLEWARE
-========================= */
+// MIDDLEWARE
 
 app.use(cors());
 
 app.use(express.json());
 
+app.use(express.urlencoded({
+  extended: true
+}));
+
+
+
+const otpRoutes =
+require("./routes/otpRoutes");
+
 app.use(
-  express.urlencoded({
-    extended: true,
-  })
+  "/api/otp",
+  otpRoutes
 );
 
-/* =========================
-   DATABASE CONNECTION
-========================= */
+// DATABASE CONNECTION
 
-mongoose
-  .connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI)
+
   .then(() => {
-    console.log("MongoDB Connected ✅");
+
+    console.log(
+      "MongoDB Connected ✅"
+    );
   })
+
   .catch((error) => {
+
     console.log(
       "MongoDB Error ❌",
       error.message
     );
   });
 
-/* =========================
-   ROUTES IMPORT
-========================= */
-
-const otpRoutes =
-  require("./routes/otpRoutes");
+// ROUTES
 
 const userRoutes =
   require("./routes/userRoutes");
@@ -57,18 +62,39 @@ const uploadRoutes =
 const paymentRoutes =
   require("./routes/paymentRoutes");
 
-/* =========================
-   API ROUTES
-========================= */
+const os = require("os");
+function getLocalIp() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === "IPv4" && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return "localhost";
+}
 
-app.use(
-  "/api/otp",
-  otpRoutes
-);
+app.get("/api/server-info", (req, res) => {
+  res.json({
+    localIp: getLocalIp(),
+    port: 5173
+  });
+});
+
+const path = require("path");
+
+// API ROUTES
 
 app.use(
   "/api",
   userRoutes
+);
+
+// Serve uploaded files (for local storage / fallback)
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"))
 );
 
 app.use(
@@ -76,37 +102,29 @@ app.use(
   orderRoutes
 );
 
+// IMPORTANT UPLOAD ROUTE
+
 app.use(
   "/api/upload",
   uploadRoutes
 );
+
+// PAYMENT ROUTE
 
 app.use(
   "/api/payment",
   paymentRoutes
 );
 
-/* =========================
-   STATIC FILES
-========================= */
-
-app.use(
-  "/uploads",
-  express.static(
-    path.join(
-      __dirname,
-      "uploads"
-    )
-  )
-);
-
-/* =========================
-   HOME ROUTE
-========================= */
+// HOME ROUTE
 
 app.get("/", (req, res) => {
+
   res.send(`
-    <h1>Smart Print Backend Running 🚀</h1>
+  
+    <h1>
+      Smart Print Backend Running 🚀
+    </h1>
 
     <a href="/test">
       Test API
@@ -129,30 +147,31 @@ app.get("/", (req, res) => {
     <a href="/api/upload">
       Upload API
     </a>
+
   `);
 });
 
-/* =========================
-   TEST ROUTE
-========================= */
+// TEST ROUTE
 
 app.get("/test", (req, res) => {
+
   res.json({
+
     success: true,
+
     message:
-      "API Working Properly",
+      "API Working Properly"
   });
 });
 
-/* =========================
-   SERVER
-========================= */
+// SERVER
 
 const PORT =
   process.env.PORT || 5000;
 
 app.listen(PORT, () => {
+
   console.log(
-    `Server running on port ${PORT}`
+    `Server running on ${PORT}`
   );
 });
