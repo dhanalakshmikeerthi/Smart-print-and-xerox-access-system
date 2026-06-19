@@ -114,6 +114,12 @@ app.get("/", (req, res) => {
 
     <br/><br/>
 
+    <a href="/api/users">
+      View Users
+    </a>
+
+    <br/><br/>
+
     <a href="/api/orders">
       View Orders
     </a>
