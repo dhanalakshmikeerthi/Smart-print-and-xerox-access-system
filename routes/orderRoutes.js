@@ -153,13 +153,7 @@ router.put("/:id/ready", async (req, res) => {
 // HANDOVER PRINT (COMPLETE ORDER)
 router.put("/:id/complete", async (req, res) => {
   try {
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      {
-        status: "Completed"
-      },
-      { new: true }
-    );
+    const order = await Order.findById(req.params.id);
 
     if (!order) {
       return res.status(404).json({
@@ -167,6 +161,29 @@ router.put("/:id/complete", async (req, res) => {
         message: "Order not found"
       });
     }
+
+    // Auto-delete the uploaded file from Cloudinary upon handover
+    if (order.public_id) {
+      try {
+        const cloudinary = require("../config/cloudinary");
+        const ext = (order.fileName || "").split('.').pop().toLowerCase();
+        const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
+        const resourceType = isImage ? "image" : "raw";
+
+        console.log(`Auto-deleting asset: ${order.public_id} of resource_type: ${resourceType}`);
+        const destroyResult = await cloudinary.uploader.destroy(order.public_id, {
+          resource_type: resourceType
+        });
+        console.log("Cloudinary deletion result:", destroyResult);
+      } catch (cloudinaryError) {
+        console.error("Cloudinary auto-deletion failed:", cloudinaryError);
+      }
+    }
+
+    order.status = "Completed";
+    order.fileUrl = "";
+    order.public_id = "";
+    await order.save();
 
     res.json({
       success: true,
